@@ -15,12 +15,12 @@
 #include <string>
 #include <vector>
 // proj
-#include "hashtable.h"
-#include "zset.h"
-#include "list.h"
-#include "heap.h"
-#include "thread_pool.h"
-#include "common.h"
+#include "../include/hashtable.h"
+#include "../include/zset.h"
+#include "../include/list.h"
+#include "../include/heap.h"
+#include "../include/thread_pool.h"
+#include "../include/common.h"
 
 
 static void msg(const char *msg) {

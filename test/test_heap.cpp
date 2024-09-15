@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <vector>
 #include <map>
-#include "heap.cpp"
+#include "../src/heap.cpp"
 
 
 struct Data {

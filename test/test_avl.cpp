@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <set>
-#include "avl.cpp"  // lazy
+#include "../src/avl.cpp"
 
 
 #define container_of(ptr, type, member) ({                  \

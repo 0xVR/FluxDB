@@ -1,4 +1,4 @@
-#include "avl.h"
+#include "../include/avl.h"
 
 
 static uint32_t avl_depth(AVLNode *node) {
@@ -131,7 +131,6 @@ AVLNode *avl_del(AVLNode *node) {
 }
 
 // offset into the succeeding or preceding node.
-// note: the worst-case is O(log(n)) regardless of how long the offset is.
 AVLNode *avl_offset(AVLNode *node, int64_t offset) {
     int64_t pos = 0;    // relative to the starting node
     while (offset != pos) {

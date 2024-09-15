@@ -1,6 +1,6 @@
 #include <stddef.h>
 #include <stdint.h>
-#include "heap.h"
+#include "../include/heap.h"
 
 
 static size_t heap_parent(size_t i) {

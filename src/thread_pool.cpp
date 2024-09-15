@@ -1,5 +1,5 @@
 #include <assert.h>
-#include "thread_pool.h"
+#include "../include/thread_pool.h"
 
 
 static void *worker(void *arg) {

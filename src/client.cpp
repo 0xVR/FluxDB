@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 // proj
-#include "common.h"
+#include "../include/common.h"
 
 
 static void msg(const char *msg) {
