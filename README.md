@@ -1,4 +1,6 @@
 # FluxDB
+![Logo](https://i.imgur.com/f55sFBO.png)
+
 An in-memory key-value database inspired by Redis. Supports basic key-value storage, common Redis commands, and sorted sets with score-based ordering. The program is multithreaded and does some simple networking using sockets.
 
 ## Installation
