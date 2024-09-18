@@ -4,21 +4,19 @@
 #include <stdint.h>
 
 
-// hashtable node, should be embedded into the payload
+// hashtable node embedded into the payload
 struct HNode {
     HNode *next = NULL;
     uint64_t hcode = 0;
 };
 
-// a simple fixed-sized hashtable
 struct HTab {
     HNode **tab = NULL;
     size_t mask = 0;
     size_t size = 0;
 };
 
-// the real hashtable interface.
-// it uses 2 hashtables for progressive resizing.
+// interface for progressive resizing
 struct HMap {
     HTab ht1;   // newer
     HTab ht2;   // older

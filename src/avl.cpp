@@ -87,7 +87,6 @@ AVLNode *avl_fix(AVLNode *node) {
     }
 }
 
-// detach a node and returns the new root of the tree
 AVLNode *avl_del(AVLNode *node) {
     if (node->right == NULL) {
         // no right subtree, replace the node with the left subtree

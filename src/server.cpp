@@ -676,7 +676,6 @@ static bool try_fill_buffer(Conn *conn) {
     assert(conn->rbuf_size <= sizeof(conn->rbuf));
 
     // Try to process requests one by one.
-    // Why is there a loop? Please read the explanation of "pipelining".
     while (try_one_request(conn)) {}
     return (conn->state == STATE_REQ);
 }

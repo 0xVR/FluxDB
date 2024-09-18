@@ -8,7 +8,7 @@
 
 static ZNode *znode_new(const char *name, size_t len, double score) {
     ZNode *node = (ZNode *)malloc(sizeof(ZNode) + len);
-    assert(node);   // not a good idea in real projects
+    assert(node);
     avl_init(&node->tree);
     node->hmap.next = NULL;
     node->hmap.hcode = str_hash((uint8_t *)name, len);
