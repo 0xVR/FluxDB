@@ -81,82 +81,84 @@ static int32_t on_response(const uint8_t *data, size_t size) {
         return -1;
     }
     switch (data[0]) {
-    case SER_NIL:
-        printf("(nil)\n");
-        return 1;
-    case SER_ERR:
-        if (size < 1 + 8) {
-            msg("bad response");
-            return -1;
-        }
+    case '+':  // Simple string
         {
-            int32_t code = 0;
-            uint32_t len = 0;
-            memcpy(&code, &data[1], 4);
-            memcpy(&len, &data[1 + 4], 4);
-            if (size < 1 + 8 + len) {
+            const char *end = (const char *)memchr(data + 1, '\r', size - 1);
+            if (!end || end[1] != '\n') {
                 msg("bad response");
                 return -1;
             }
-            printf("(err) %d %.*s\n", code, len, &data[1 + 8]);
-            return 1 + 8 + len;
+            printf("%.*s\n", (int)(end - (const char *)data - 1), data + 1);
+            return end - (const char *)data + 2;
         }
-    case SER_STR:
-        if (size < 1 + 4) {
-            msg("bad response");
-            return -1;
-        }
+    case '-':  // Error
         {
-            uint32_t len = 0;
-            memcpy(&len, &data[1], 4);
-            if (size < 1 + 4 + len) {
+            const char *end = (const char *)memchr(data + 1, '\r', size - 1);
+            if (!end || end[1] != '\n') {
                 msg("bad response");
                 return -1;
             }
-            printf("(str) %.*s\n", len, &data[1 + 4]);
-            return 1 + 4 + len;
+            printf("(error) %.*s\n", (int)(end - (const char *)data - 1), data + 1);
+            return end - (const char *)data + 2;
         }
-    case SER_INT:
-        if (size < 1 + 8) {
-            msg("bad response");
-            return -1;
-        }
+    case ':':  // Integer
         {
-            int64_t val = 0;
-            memcpy(&val, &data[1], 8);
-            printf("(int) %ld\n", val);
-            return 1 + 8;
+            const char *end = (const char *)memchr(data + 1, '\r', size - 1);
+            if (!end || end[1] != '\n') {
+                msg("bad response");
+                return -1;
+            }
+            printf("(integer) %.*s\n", (int)(end - (const char *)data - 1), data + 1);
+            return end - (const char *)data + 2;
         }
-    case SER_DBL:
-        if (size < 1 + 8) {
-            msg("bad response");
-            return -1;
-        }
+    case '$':  // Bulk string
         {
-            double val = 0;
-            memcpy(&val, &data[1], 8);
-            printf("(dbl) %g\n", val);
-            return 1 + 8;
+            const char *p = (const char *)data + 1;
+            const char *end = (const char *)memchr(p, '\r', size - (p - (const char *)data));
+            if (!end || end[1] != '\n') {
+                msg("bad response");
+                return -1;
+            }
+            int len = atoi(std::string(p, end - p).c_str());
+            if (len < 0) {
+                printf("(nil)\n");
+                return end - (const char *)data + 2;
+            }
+            p = end + 2;
+            if (p + len + 2 > (const char *)data + size) {
+                msg("bad response");
+                return -1;
+            }
+            if (p[len] != '\r' || p[len + 1] != '\n') {
+                msg("bad response");
+                return -1;
+            }
+            printf("%.*s\n", len, p);
+            return p + len + 2 - (const char *)data;
         }
-    case SER_ARR:
-        if (size < 1 + 4) {
-            msg("bad response");
-            return -1;
-        }
+    case '*':  // Array
         {
-            uint32_t len = 0;
-            memcpy(&len, &data[1], 4);
-            printf("(arr) len=%u\n", len);
-            size_t arr_bytes = 1 + 4;
-            for (uint32_t i = 0; i < len; ++i) {
-                int32_t rv = on_response(&data[arr_bytes], size - arr_bytes);
+            const char *p = (const char *)data + 1;
+            const char *end = (const char *)memchr(p, '\r', size - (p - (const char *)data));
+            if (!end || end[1] != '\n') {
+                msg("bad response");
+                return -1;
+            }
+            int len = atoi(std::string(p, end - p).c_str());
+            if (len < 0) {
+                printf("(nil)\n");
+                return end - (const char *)data + 2;
+            }
+            p = end + 2;
+            printf("(array) len=%d\n", len);
+            for (int i = 0; i < len; ++i) {
+                int32_t rv = on_response((const uint8_t *)p, size - (p - (const char *)data));
                 if (rv < 0) {
                     return rv;
                 }
-                arr_bytes += (size_t)rv;
+                p += rv;
             }
-            printf("(arr) end\n");
-            return (int32_t)arr_bytes;
+            return p - (const char *)data;
         }
     default:
         msg("bad response");
@@ -202,6 +204,11 @@ static int32_t read_res(int fd) {
 }
 
 int main(int argc, char **argv) {
+    if (argc < 3) {
+        printf("Usage: %s <server_ip> <server_port> [command...]\n", argv[0]);
+        return 1;
+    }
+
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
         die("socket()");
@@ -209,24 +216,66 @@ int main(int argc, char **argv) {
 
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
-    addr.sin_port = ntohs(1234);
-    addr.sin_addr.s_addr = ntohl(INADDR_LOOPBACK);  // 127.0.0.1
+    addr.sin_port = htons(atoi(argv[2]));
+    addr.sin_addr.s_addr = inet_addr(argv[1]);
+
     int rv = connect(fd, (const struct sockaddr *)&addr, sizeof(addr));
     if (rv) {
         die("connect");
     }
 
+    // Send command
     std::vector<std::string> cmd;
-    for (int i = 1; i < argc; ++i) {
+    for (int i = 3; i < argc; ++i) {
         cmd.push_back(argv[i]);
     }
-    int32_t err = send_req(fd, cmd);
-    if (err) {
-        goto L_DONE;
-    }
-    err = read_res(fd);
-    if (err) {
-        goto L_DONE;
+
+    if (cmd.empty()) {
+        // Interactive mode
+        char line[1024];
+        while (fgets(line, sizeof(line), stdin)) {
+            // Parse command
+            cmd.clear();
+            char *p = line;
+            while (*p) {
+                while (*p == ' ' || *p == '\t' || *p == '\n') {
+                    *p++ = '\0';
+                }
+                if (*p) {
+                    cmd.push_back(p);
+                    while (*p && *p != ' ' && *p != '\t' && *p != '\n') {
+                        ++p;
+                    }
+                }
+            }
+
+            if (cmd.empty()) {
+                continue;
+            }
+
+            // Send request
+            int32_t err = send_req(fd, cmd);
+            if (err) {
+                goto L_DONE;
+            }
+
+            // Read response
+            err = read_res(fd);
+            if (err) {
+                goto L_DONE;
+            }
+        }
+    } else {
+        // Command-line mode
+        int32_t err = send_req(fd, cmd);
+        if (err) {
+            goto L_DONE;
+        }
+
+        err = read_res(fd);
+        if (err) {
+            goto L_DONE;
+        }
     }
 
 L_DONE:

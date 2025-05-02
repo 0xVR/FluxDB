@@ -1,7 +1,17 @@
 # FluxDB
 ![Logo](https://i.imgur.com/f55sFBO.png)
 
-An in-memory key-value database inspired by Redis. Supports basic key-value storage, common Redis commands, and sorted sets with score-based ordering. The program is multithreaded and does some simple networking using sockets.
+A distributed in-memory key-value database inspired by Redis. Supports basic key-value storage, common Redis commands, and sorted sets with score-based ordering. The program is multithreaded and does some simple networking using sockets.
+
+### Distributed Mode
+
+- Keys are distributed across nodes using consistent hashing
+- Each node is responsible for a portion of the hash ring
+- Virtual nodes ensure even distribution of keys
+- Automatic routing of requests to the correct node
+- Non-blocking I/O for better performance
+- Fault tolerance through node replication
+
 
 ## Installation
 
@@ -36,4 +46,45 @@ Once the server is running, you can use the provided client to connect to it and
 For example:
 ```sh
 ./client set a 1
+```
+
+## Distributed Mode
+
+FluxDB can be run in distributed mode using MPI for horizontal scaling. In this mode, the database is split across multiple nodes using consistent hashing.
+
+### Building for Distributed Mode
+
+```sh
+# Create build directory
+mkdir build
+cd build
+
+# Configure and build with MPI support
+cmake ..
+make
+```
+
+### Running in Distributed Mode
+
+```sh
+# Run with 4 nodes
+mpirun -n 4 ./fluxdb_server
+
+# Each node will listen on a different port:
+# - Node 0: port 1234
+# - Node 1: port 1235
+# - Node 2: port 1236
+# - Node 3: port 1237
+```
+
+### Using the Client with Distributed Mode
+
+```sh
+# Connect to any node
+./fluxdb_client 127.0.0.1 1234
+
+# The system will automatically route your requests to the correct node
+SET key value
+GET key
+DEL key
 ```
